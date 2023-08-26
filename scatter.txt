@@ -1,18 +1,15 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from collections import Counter
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 import numpy as np
 
 # Sample Data
-texts1 = ["apple apple orange", "apple pear", "apple grape grape"]
-texts2 = ["apple orange", "orange orange", "pear pear"]
-texts3 = ["apple pear", "pear grape", "grape grape grape"]
+texts1 = [["apple", "apple", "orange"], ["apple", "pear"], ["apple", "grape", "grape"]]
+texts2 = [["apple", "orange"], ["orange", "orange"], ["pear", "pear"]]
+texts3 = [["apple", "pear"], ["pear", "grape"], ["grape", "grape", "grape"]]
 
 def get_word_frequency(texts):
-    words = []
-    for text in texts:
-        words.extend(text.split())
+    words = [word for sublist in texts for word in sublist]
     counter = Counter(words)
     df = pd.DataFrame.from_dict(counter, orient='index', columns=['Frequency'])
     df.index.name = 'Word'
@@ -34,9 +31,6 @@ total_df1, total_df2, total_df3 = df_combined['Frequency_df1'].sum(), df_combine
 df_combined['Proportion_df1'] = df_combined['Frequency_df1'] / total_df1
 df_combined['Proportion_df2'] = df_combined['Frequency_df2'] / total_df2
 df_combined['Proportion_df3'] = df_combined['Frequency_df3'] / total_df3
-
-# Filtering frequent words for demonstration
-df_combined = df_combined[df_combined['Proportion_df1'] + df_combined['Proportion_df2'] + df_combined['Proportion_df3'] > 0.05]
 
 # Scatter Plot
 fig, axes = plt.subplots(1, 2, figsize=(14, 7))
