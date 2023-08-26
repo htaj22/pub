@@ -4,7 +4,7 @@ import numpy as np
 from collections import Counter
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
-# Simulated data (you can replace this with your real datasets)
+# Simulated data
 df1_text = ["This is text from df1",
             "More text from df1",
             "Final text from df1"]
@@ -24,48 +24,45 @@ def tokenize_and_count(text_data):
     return Counter(words)
 
 # Create frequency DataFrames
-df1_freq = pd.DataFrame(tokenize_and_count(df1_text).items(), columns=['word', 'df1'])
-df2_freq = pd.DataFrame(tokenize_and_count(df2_text).items(), columns=['word', 'df2'])
-df3_freq = pd.DataFrame(tokenize_and_count(df3_text).items(), columns=['word', 'df3'])
+df1_freq = pd.DataFrame(tokenize_and_count(df1_text).items(), columns=['word', 'count']).sort_values('count', ascending=False)
+df2_freq = pd.DataFrame(tokenize_and_count(df2_text).items(), columns=['word', 'count']).sort_values('count', ascending=False)
+df3_freq = pd.DataFrame(tokenize_and_count(df3_text).items(), columns=['word', 'count']).sort_values('count', ascending=False)
 
-# Merging DataFrames
-merged_freq = pd.merge(pd.merge(df1_freq, df2_freq, on='word', how='outer'), df3_freq, on='word', how='outer').fillna(0)
+# Merge and normalize the frequencies
+merged_freq = pd.merge(pd.merge(df1_freq, df2_freq, on='word', how='outer', suffixes=('_df1', '_df2')), 
+                       df3_freq.rename(columns={'count': 'count_df3'}), on='word', how='outer').fillna(0)
+total = merged_freq.sum()
+merged_freq['proportion_df1'] = merged_freq['count_df1'] / total['count_df1']
+merged_freq['proportion_df2'] = merged_freq['count_df2'] / total['count_df2']
+merged_freq['proportion_df3'] = merged_freq['count_df3'] / total['count_df3']
 
-# Normalize the frequencies
-total_df1 = merged_freq['df1'].sum()
-total_df2 = merged_freq['df2'].sum()
-total_df3 = merged_freq['df3'].sum()
-
-merged_freq['df1'] = merged_freq['df1'] / total_df1
-merged_freq['df2'] = merged_freq['df2'] / total_df2
-merged_freq['df3'] = merged_freq['df3'] / total_df3
-
-# Scatter Plots
+# Scatter Plot
 fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
-# First subplot comparing df1 and df2
-axes[0].scatter(merged_freq['df1'], merged_freq['df2'], c='blue', alpha=0.5)
+# Plot for df1 vs df2
+axes[0].scatter(merged_freq['proportion_df1'], merged_freq['proportion_df2'], alpha=0.5, label='Words')
+axes[0].plot([0, max(merged_freq['proportion_df1'])], [0, max(merged_freq['proportion_df1'])], 'k--')
 axes[0].set_xscale('log')
 axes[0].set_yscale('log')
 axes[0].set_title('df1 vs df2')
-axes[0].set_xlabel('df1')
-axes[0].set_ylabel('df2')
-axes[0].plot([1e-5, 1e-1], [1e-5, 1e-1], 'k--')
+axes[0].set_xlabel('Proportion in df1')
+axes[0].set_ylabel('Proportion in df2')
 
-# Second subplot comparing df1 and df3
-axes[1].scatter(merged_freq['df1'], merged_freq['df3'], c='red', alpha=0.5)
+# Plot for df1 vs df3
+axes[1].scatter(merged_freq['proportion_df1'], merged_freq['proportion_df3'], alpha=0.5, label='Words')
+axes[1].plot([0, max(merged_freq['proportion_df1'])], [0, max(merged_freq['proportion_df1'])], 'k--')
 axes[1].set_xscale('log')
 axes[1].set_yscale('log')
 axes[1].set_title('df1 vs df3')
-axes[1].set_xlabel('df1')
-axes[1].set_ylabel('df3')
-axes[1].plot([1e-5, 1e-1], [1e-5, 1e-1], 'k--')
+axes[1].set_xlabel('Proportion in df1')
+axes[1].set_ylabel('Proportion in df3')
 
-# Annotate a few points (for demonstration; ideally, you'd use some heuristic to decide which points to annotate)
-for i, word in enumerate(merged_freq['word']):
-    if i % 2 == 0:  # Annotating every 2nd point as an example
-        for ax in axes:
-            ax.annotate(word, (merged_freq['df1'][i], merged_freq['df2'][i]))
+# Annotating points
+for i, row in merged_freq.iterrows():
+    if row['proportion_df1'] > 0.1 or row['proportion_df2'] > 0.1:
+        axes[0].annotate(row['word'], (row['proportion_df1'], row['proportion_df2']), textcoords="offset points", xytext=(0,10), ha='center')
+    if row['proportion_df1'] > 0.1 or row['proportion_df3'] > 0.1:
+        axes[1].annotate(row['word'], (row['proportion_df1'], row['proportion_df3']), textcoords="offset points", xytext=(0,10), ha='center')
 
 plt.tight_layout()
 plt.show()
