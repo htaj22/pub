@@ -122,16 +122,16 @@ fig.show()
 
 
 ### sorted
-
 # Initialize the sources, targets, values, and label lists
 sources = []
 targets = []
 values = []
 
-# Construct the label_list with sorted HRI values for each dataframe
+# Construct the label_list with sorted HRI values for each dataframe, pushing NaN to the end
 label_list = []
 for df_name in df_names:
-    unique_hris = sorted(merged_outer[f"{df_name}_HRI"].unique())
+    unique_hris = [hri for hri in merged_outer[f"{df_name}_HRI"].unique() if pd.notna(hri)]
+    unique_hris = sorted(unique_hris, key=lambda x: (pd.isna(x), x))  # This will push NaN values to the end
     for hri in unique_hris:
         label_list.append(f"{df_name}_{hri}")
 
@@ -174,3 +174,4 @@ fig = go.Figure(data=[go.Sankey(
 fig.update_layout(title_text="Changed Transitions between HRIs across DataFrames", font_size=10, height=800)
 
 fig.show()
+
