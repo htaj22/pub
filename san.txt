@@ -121,19 +121,22 @@ fig.show()
 
 
 
-### sorted
-# Initialize the sources, targets, values, and label lists
-sources = []
-targets = []
-values = []
-
-# Construct the label_list with sorted HRI values for each dataframe, pushing NaN to the end
+# Construct the label_list with sorted HRI values for each dataframe, ensuring NaN labels are added
 label_list = []
 for df_name in df_names:
     unique_hris = [hri for hri in merged_outer[f"{df_name}_HRI"].unique() if pd.notna(hri)]
-    unique_hris = sorted(unique_hris, key=lambda x: (pd.isna(x), x))  # This will push NaN values to the end
+    unique_hris = sorted(unique_hris)
     for hri in unique_hris:
         label_list.append(f"{df_name}_{hri}")
+    
+    # Ensure a NaN label is added for every dataframe
+    if f"{df_name}_nan" not in label_list:
+        label_list.append(f"{df_name}_nan")
+
+# Resetting the sources, targets, and values lists
+sources = []
+targets = []
+values = []
 
 # Iterate over rows of merged_outer to capture changed transitions
 for _, row in merged_outer.iterrows():
@@ -145,8 +148,11 @@ for _, row in merged_outer.iterrows():
         if row[current_hri_col] == row[next_hri_col]:
             continue
         
-        src_idx = label_list.index(f"{df_names[i]}_{row[current_hri_col]}")
-        tgt_idx = label_list.index(f"{df_names[i+1]}_{row[next_hri_col]}")
+        current_label = f"{df_names[i]}_{row[current_hri_col]}" if pd.notna(row[current_hri_col]) else f"{df_names[i]}_nan"
+        next_label = f"{df_names[i+1]}_{row[next_hri_col]}" if pd.notna(row[next_hri_col]) else f"{df_names[i+1]}_nan"
+        
+        src_idx = label_list.index(current_label)
+        tgt_idx = label_list.index(next_label)
         
         if src_idx in sources and targets[sources.index(src_idx)] == tgt_idx:
             values[sources.index(src_idx)] += 1
@@ -174,4 +180,5 @@ fig = go.Figure(data=[go.Sankey(
 fig.update_layout(title_text="Changed Transitions between HRIs across DataFrames", font_size=10, height=800)
 
 fig.show()
+
 
