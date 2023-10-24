@@ -118,3 +118,59 @@ fig = go.Figure(data=[go.Sankey(
 
 fig.update_layout(title_text="Changed Transitions between HRIs across DataFrames", font_size=10)
 fig.show()
+
+
+
+### sorted
+
+# Initialize the sources, targets, values, and label lists
+sources = []
+targets = []
+values = []
+
+# Construct the label_list with sorted HRI values for each dataframe
+label_list = []
+for df_name in df_names:
+    unique_hris = sorted(merged_outer[f"{df_name}_HRI"].unique())
+    for hri in unique_hris:
+        label_list.append(f"{df_name}_{hri}")
+
+# Iterate over rows of merged_outer to capture changed transitions
+for _, row in merged_outer.iterrows():
+    for i in range(len(df_names) - 1):  # Exclude the last dataframe
+        current_hri_col = f"{df_names[i]}_HRI"
+        next_hri_col = f"{df_names[i+1]}_HRI"
+        
+        # Skip transitions that don't represent a change
+        if row[current_hri_col] == row[next_hri_col]:
+            continue
+        
+        src_idx = label_list.index(f"{df_names[i]}_{row[current_hri_col]}")
+        tgt_idx = label_list.index(f"{df_names[i+1]}_{row[next_hri_col]}")
+        
+        if src_idx in sources and targets[sources.index(src_idx)] == tgt_idx:
+            values[sources.index(src_idx)] += 1
+        else:
+            sources.append(src_idx)
+            targets.append(tgt_idx)
+            values.append(1)
+
+# Plotting the Sankey diagram
+fig = go.Figure(data=[go.Sankey(
+    node=dict(
+        pad=15,
+        thickness=20,
+        line=dict(color="black", width=0.5),
+        label=label_list
+    ),
+    link=dict(
+        source=sources,
+        target=targets,
+        value=values,
+    )
+)])
+
+# Update the height of the figure
+fig.update_layout(title_text="Changed Transitions between HRIs across DataFrames", font_size=10, height=800)
+
+fig.show()
